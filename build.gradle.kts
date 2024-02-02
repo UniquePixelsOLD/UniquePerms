@@ -2,27 +2,44 @@ plugins {
   `java-library`
   id("io.papermc.paperweight.userdev") version "1.5.11"
   id("xyz.jpenilla.run-paper") version "2.2.2" // Adds runServer and runMojangMappedServer tasks for testing
+  id("com.github.johnrengelman.shadow") version ("8.1.1")
 }
 
-group = "io.papermc.paperweight"
-version = "1.0.0-SNAPSHOT"
-description = "Test plugin for paperweight-userdev"
+group = "net.uniquepixels"
+version = "1.0.0"
+description = "Permission plugin for UniquePixels"
 
 java {
-  // Configure the java toolchain. This allows gradle to auto-provision JDK 17 on systems that only have JDK 8 installed for example.
-  toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+  toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
 }
 
 dependencies {
   paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT")
-  // paperweight.foliaDevBundle("1.20.4-R0.1-SNAPSHOT")
-  // paperweight.devBundle("com.example.paperfork", "1.20.4-R0.1-SNAPSHOT")
+
+  compileOnly("net.uniquepixels:core:latest")
+  compileOnly("net.uniquepixels:core-api:latest")
+
+  implementation("org.mongodb:mongodb-driver-sync:4.10.1")
 }
 
 tasks {
   // Configure reobfJar to run when invoking the build task
   assemble {
     dependsOn(reobfJar)
+  }
+  shadowJar {
+    dependencies {
+      include(dependency("org.mongodb:mongodb-driver-sync:4.10.1"))
+      include(dependency("org.mongodb:mongodb-driver-core:4.10.1"))
+      include(dependency("org.mongodb:bson:4.10.1"))
+      exclude(dependency("net.uniquepixels:core:latest"))
+      exclude(dependency("net.uniquepixels:core-api:latest"))
+    }
   }
 
   compileJava {
@@ -49,11 +66,9 @@ tasks {
     }
   }
 
-  /*
   reobfJar {
     // This is an example of how you might change the output location for reobfJar. It's recommended not to do this
     // for a variety of reasons, however it's asked frequently enough that an example of how to do it is included here.
-    outputJar.set(layout.buildDirectory.file("libs/PaperweightTestPlugin-${project.version}.jar"))
+    outputJar.set(layout.buildDirectory.file("dist/UniquePerms-${project.version}.jar"))
   }
-   */
 }

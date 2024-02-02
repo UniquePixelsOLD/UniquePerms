@@ -1,0 +1,11 @@
+/perms
+  0         1                2            3
+  player -> <set/add/remove> <perm/group> <PERM/GROUP> <time>
+  0        1               2         3
+  group -> <create/delete> <GROUP>
+  group -> <add/remove> <PERMISSION> <time>
+
+
+  0        1      2            3
+  group -> extend <FROM_GROUP> <TO_GROUP>
+  group -> graph <GROUP>

@@ -1,8 +1,9 @@
-name: $name
-version: $version
-main: io.papermc.paperweight.testplugin.TestPlugin
-description: $description
-load: STARTUP
-authors:
-  - Author
-api-version: "$apiVersion"
+name: UniquePerms
+main: net.uniquepixels.uniqueperms.UniquePerms
+version: 1.0.0
+api-version: 1.20
+author: [ DasShorty ]
+depend: [PaperCore]
+commands:
+  perms:
+    aliases: [ permissions,permission ]
