@@ -25,6 +25,8 @@ dependencies {
   compileOnly("net.uniquepixels:core-api:latest")
 
   implementation("org.mongodb:mongodb-driver-sync:4.10.1")
+
+  implementation("dev.s7a:base64-itemstack:1.0.0")
 }
 
 tasks {

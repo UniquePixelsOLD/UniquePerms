@@ -30,6 +30,17 @@ public class PermissionManager {
     return this.mongoDatabase.collection("perms-groups", Document.class);
   }
 
+  public List<GroupPermission> getAllGroups() {
+
+    List<GroupPermission> list = new ArrayList<>();
+
+    for (Document document : this.getGroupCollection().find()) {
+      list.add(GroupPermission.fromDocument(document));
+    }
+
+    return list;
+  }
+
   /**
    * Applies the permissions set for the player into the player
    */

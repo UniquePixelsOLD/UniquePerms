@@ -4,17 +4,43 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.translation.GlobalTranslator;
 import net.kyori.adventure.translation.TranslationRegistry;
 import net.kyori.adventure.util.UTF8ResourceBundleControl;
+import net.uniquepixels.core.paper.chat.chatinput.ChatInputManager;
+import net.uniquepixels.core.paper.gui.backend.UIHolder;
 import net.uniquepixels.coreapi.database.MongoDatabase;
-import net.uniquepixels.uniqueperms.command.PermissionCommand;
 import net.uniquepixels.uniqueperms.permission.PermissionManager;
+import net.uniquepixels.uniqueperms.ui.PermissionCommand;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
 
 public class UniquePerms extends JavaPlugin {
+
+  private PermissionManager permissionManager;
+  private ChatInputManager chatInputManager;
+
+  public ChatInputManager getChatInputManager() {
+    return chatInputManager;
+  }
+
+  public PermissionManager getPermissionManager() {
+    return permissionManager;
+  }
+
   @Override
   public void onEnable() {
+
+    RegisteredServiceProvider<UIHolder> uiHolderRegisteredServiceProvider = Bukkit.getServicesManager().getRegistration(UIHolder.class);
+    RegisteredServiceProvider<ChatInputManager> chatInputManagerRegisteredServiceProvider = Bukkit.getServicesManager().getRegistration(ChatInputManager.class);
+
+    if (uiHolderRegisteredServiceProvider == null || chatInputManagerRegisteredServiceProvider == null)
+      return;
+
+    UIHolder uiHolder = uiHolderRegisteredServiceProvider.getProvider();
+    this.chatInputManager = chatInputManagerRegisteredServiceProvider.getProvider();
+
 
     MongoDatabase mongoDatabase = new MongoDatabase("mongodb://mongo-auth:g7iqVbMSTHumk4p9KkK@localhost:27017/?authMechanism=SCRAM-SHA-1");
 
@@ -24,8 +50,8 @@ public class UniquePerms extends JavaPlugin {
 
     GlobalTranslator.translator().addSource(registry);
 
-    PermissionManager permissionManager = new PermissionManager(mongoDatabase);
+    this.permissionManager = new PermissionManager(mongoDatabase);
 
-    getCommand("perms").setExecutor(new PermissionCommand(permissionManager));
+    getCommand("perms").setExecutor(new PermissionCommand(uiHolder));
   }
 }
