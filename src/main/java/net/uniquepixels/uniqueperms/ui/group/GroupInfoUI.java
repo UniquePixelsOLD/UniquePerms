@@ -3,7 +3,9 @@ package net.uniquepixels.uniqueperms.ui.group;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.translation.GlobalTranslator;
 import net.uniquepixels.core.paper.gui.UIRow;
 import net.uniquepixels.core.paper.gui.UISlot;
 import net.uniquepixels.core.paper.gui.backend.UIHolder;
@@ -17,7 +19,9 @@ import net.uniquepixels.uniqueperms.UniquePerms;
 import net.uniquepixels.uniqueperms.permission.GroupPermission;
 import net.uniquepixels.uniqueperms.permission.PermissionManager;
 import net.uniquepixels.uniqueperms.ui.UiHeads;
-import org.bukkit.Bukkit;
+import net.uniquepixels.uniqueperms.ui.generic.PermissionsDashboardUI;
+import net.uniquepixels.uniqueperms.ui.generic.UIData;
+import net.uniquepixels.uniqueperms.ui.generic.UISection;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
@@ -26,6 +30,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
+import java.util.Locale;
 
 public class GroupInfoUI extends ChestUI {
 
@@ -36,7 +41,7 @@ public class GroupInfoUI extends ChestUI {
   private boolean deleteGroup = false;
 
   public GroupInfoUI(GroupPermission groupPermission, UIHolder uiHolder) {
-    super(Component.text("Group Info"), UIRow.CHEST_ROW_6);
+    super(Component.translatable("ui.group.info.title").color(TextColor.fromHexString("#870ac2")), UIRow.CHEST_ROW_6);
     this.groupPermission = groupPermission;
     this.weight = groupPermission.weight();
     this.uiHolder = uiHolder;
@@ -45,19 +50,32 @@ public class GroupInfoUI extends ChestUI {
   @Override
   protected void initItems(Player player) throws OutOfInventoryException {
 
+    Locale locale = player.locale();
+    Component uiArrow = Component.text("» ").color(NamedTextColor.GRAY).style(builder -> builder.decoration(TextDecoration.ITALIC, false).build());
+    Component leftClick = GlobalTranslator.render(Component.translatable("ui.left.click"), locale)
+      .color(NamedTextColor.BLUE).style(builder -> builder.decoration(TextDecoration.ITALIC, false).build());
+    Component rightClick = GlobalTranslator.render(Component.translatable("ui.right.click"), locale)
+      .color(NamedTextColor.BLUE).style(builder -> builder.decoration(TextDecoration.ITALIC, false).build());
+    Component minus = Component.translatable(" - ").color(NamedTextColor.DARK_GRAY);
+
     // Group Info
     item(new UIItem(
       new DefaultItemStackBuilder<>(this.groupPermission.material())
-        .displayName(Component.text(this.groupPermission.groupName()).color(NamedTextColor.GRAY).style(Style.style()
-          .decoration(TextDecoration.ITALIC, false).build()))
+        .removeLoreLines()
+        .displayName(uiArrow.append(
+          GlobalTranslator.render(Component.translatable("ui.group.info.group.title").arguments(Component.text(this.groupPermission.groupName())
+            .color(TextColor.fromHexString("#870ac2"))), locale).color(NamedTextColor.GRAY)
+        ))
+        .addFlags(ItemFlag.values())
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_13), (player1, uiItem, clickType, inventoryClickEvent) -> {
       return true;
     });
 
     // Back
-    item(new UIItem(new SkullItemStackBuilder(UiHeads.RED_BACK)
-      .displayName(Component.text("Back"))
+    item(new UIItem(new SkullItemStackBuilder(UiHeads.RED_BACK.clone())
+      .displayName(uiArrow.append(GlobalTranslator.render(Component.translatable("ui.back"), locale).color(NamedTextColor.RED)))
+      .removeLoreLines()
       .applyItemMeta()
       .buildItem(), UISlot.SLOT_45), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
@@ -69,22 +87,43 @@ public class GroupInfoUI extends ChestUI {
 
     // Permissions Submenu
     item(new UIItem(
-      new DefaultItemStackBuilder<>(UiHeads.OAK_WOOD_P)
-        .displayName(Component.text("Permissions").color(NamedTextColor.GRAY).style(Style.style()
-          .decoration(TextDecoration.ITALIC, false).build()))
+      new DefaultItemStackBuilder<>(UiHeads.OAK_WOOD_P.clone())
+        .removeLoreLines()
+        .displayName(
+          uiArrow.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.permissions.title"), locale)
+              .color(TextColor.fromHexString("#870ac2"))
+          )
+        )
+        .addLoreLine(
+          leftClick.append(minus.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.permissions.lore"), locale).color(NamedTextColor.GRAY)
+          ))
+        )
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_20), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
-      player1.sendMessage("Open Permissions");
+      this.onClose(player1);
+      this.uiHolder.open(new PermissionsDashboardUI(this.permissionManager, this.uiHolder, UISection.GROUP, new UIData(this.groupPermission, null), 0), player1);
 
       return true;
     });
 
     // Groups Submenu
     item(new UIItem(
-      new DefaultItemStackBuilder<>(UiHeads.OAK_WOOD_G)
-        .displayName(Component.text("Groups").color(NamedTextColor.GRAY).style(Style.style()
-          .decoration(TextDecoration.ITALIC, false).build()))
+      new DefaultItemStackBuilder<>(UiHeads.OAK_WOOD_G.clone())
+        .removeLoreLines()
+        .displayName(
+          uiArrow.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.extend.title"), locale)
+              .color(TextColor.fromHexString("#870ac2"))
+          )
+        )
+        .addLoreLine(
+          leftClick.append(minus.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.extend.lore"), locale).color(NamedTextColor.GRAY)
+          ))
+        )
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_38), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
@@ -95,9 +134,24 @@ public class GroupInfoUI extends ChestUI {
 
     // Add weight
     item(new UIItem(
-      new DefaultItemStackBuilder<>(UiHeads.PLUS_HEAD)
-        .displayName(Component.text("Add weight").color(NamedTextColor.GRAY).style(Style.style()
-          .decoration(TextDecoration.ITALIC, false).build()))
+      new DefaultItemStackBuilder<>(UiHeads.PLUS_HEAD.clone())
+        .removeLoreLines()
+        .displayName(
+          uiArrow.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.add.title"), locale)
+              .color(TextColor.fromHexString("#870ac2"))
+          )
+        )
+        .addLoreLine(
+          leftClick.append(minus.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.add.lore.1"), locale).color(NamedTextColor.GRAY)
+          ))
+        )
+        .addLoreLine(
+          rightClick.append(minus.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.add.lore.2"), locale).color(NamedTextColor.GRAY)
+          ))
+        )
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_24), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
@@ -127,9 +181,19 @@ public class GroupInfoUI extends ChestUI {
     // current weight
     item(new UIItem(
       new DefaultItemStackBuilder<>(Material.CHEST)
-        .displayName(Component.text("Current weight").color(NamedTextColor.GRAY).style(Style.style()
-          .decoration(TextDecoration.ITALIC, false).build()))
-        .addLoreLine(Component.text(weight))
+        .removeLoreLines()
+        .displayName(
+          uiArrow.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.current.title"), locale)
+              .color(TextColor.fromHexString("#870ac2"))
+          )
+        )
+        .addLoreLine(
+          GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.current.lore")
+              .arguments(Component.text(this.weight).color(TextColor.fromHexString("#870ac2"))), locale)
+            .style(Style.style().decoration(TextDecoration.ITALIC, false).build())
+            .color(NamedTextColor.GRAY)
+        )
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_33), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
@@ -140,9 +204,24 @@ public class GroupInfoUI extends ChestUI {
 
     // Remove weight
     item(new UIItem(
-      new DefaultItemStackBuilder<>(UiHeads.REMOVE_HEAD)
-        .displayName(Component.text("Remove weight").color(NamedTextColor.GRAY).style(Style.style()
-          .decoration(TextDecoration.ITALIC, false).build()))
+      new DefaultItemStackBuilder<>(UiHeads.REMOVE_HEAD.clone())
+        .removeLoreLines()
+        .displayName(
+          uiArrow.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.remove.title"), locale)
+              .color(TextColor.fromHexString("#870ac2"))
+          )
+        )
+        .addLoreLine(
+          leftClick.append(minus.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.remove.lore.1"), locale).color(NamedTextColor.GRAY)
+          ))
+        )
+        .addLoreLine(
+          rightClick.append(minus.append(
+            GlobalTranslator.render(Component.translatable("ui.group.info.group.weight.remove.lore.2"), locale).color(NamedTextColor.GRAY)
+          ))
+        )
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_42), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
@@ -172,14 +251,24 @@ public class GroupInfoUI extends ChestUI {
     if (deleteGroup) {
       item(new UIItem(
         new DefaultItemStackBuilder<>(Material.LAVA_BUCKET)
-          .displayName(Component.text("Delete Group").color(NamedTextColor.GRAY).style(Style.style()
-            .decoration(TextDecoration.ITALIC, false).build()))
-          .addLoreLine(Component.text("Are you shure sm7b?"))
+          .removeLoreLines()
+          .displayName(
+            uiArrow.append(
+              GlobalTranslator.render(Component.translatable("ui.group.info.group.delete.title"), locale)
+                .color(NamedTextColor.RED)
+            )
+          )
+          .addLoreLine(
+            leftClick.append(minus.append(
+              GlobalTranslator.render(Component.translatable("ui.group.info.group.delete.lore.confirm"), locale).color(NamedTextColor.RED)
+            ))
+          )
+          .addFlags(ItemFlag.values())
           .addEnchantment(Enchantment.MENDING, 1).applyItemMeta()
           .buildItem(), UISlot.SLOT_49), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
         this.permissionManager.removeGroupByName(this.groupPermission.groupName());
-        player1.closeInventory();
+        this.uiHolder.open(new GroupDashboardUI(this.uiHolder), player1);
 
         return true;
       });
@@ -187,19 +276,28 @@ public class GroupInfoUI extends ChestUI {
     } else
       item(new UIItem(
         new DefaultItemStackBuilder<>(Material.LAVA_BUCKET)
-          .displayName(Component.text("Delete Group").color(NamedTextColor.GRAY).style(Style.style()
-            .decoration(TextDecoration.ITALIC, false).build()))
+          .removeLoreLines()
+          .displayName(
+            uiArrow.append(
+              GlobalTranslator.render(Component.translatable("ui.group.info.group.delete.title"), locale)
+                .color(NamedTextColor.RED)
+            )
+          )
+          .addLoreLine(
+            leftClick.append(minus.append(
+              GlobalTranslator.render(Component.translatable("ui.group.info.group.delete.lore.1"), locale).color(NamedTextColor.GRAY)
+            ))
+          )
           .applyItemMeta()
           .buildItem(), UISlot.SLOT_49), (player1, uiItem, clickType, inventoryClickEvent) -> {
         this.deleteGroup = true;
-          try {
-              this.refreshInventory(player1);
-          } catch (OutOfInventoryException e) {
-              throw new RuntimeException(e);
-          }
-          return true;
+        try {
+          this.refreshInventory(player1);
+        } catch (OutOfInventoryException e) {
+          throw new RuntimeException(e);
+        }
+        return true;
       });
-
 
 
     setBackground(new UIBackground(UIBackground.BackgroundType.FULL, List.of(

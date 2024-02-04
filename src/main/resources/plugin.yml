@@ -8,4 +8,5 @@ libraries:
 depend: [PaperCore]
 commands:
   perms:
+    permission: test
     aliases: [ permissions,permission ]

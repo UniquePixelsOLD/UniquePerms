@@ -16,5 +16,4 @@ public record GroupPermission(String groupName, Map<String, Boolean> permissions
   public Document toDocument() {
     return new Gson().fromJson(new Gson().toJson(this), Document.class);
   }
-
 }

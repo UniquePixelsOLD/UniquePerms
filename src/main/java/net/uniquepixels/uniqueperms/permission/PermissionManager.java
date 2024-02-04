@@ -29,7 +29,6 @@ public class PermissionManager {
   private MongoCollection<Document> getPlayerCollection() {
     return this.mongoDatabase.collection("perms-groups", Document.class);
   }
-
   public List<GroupPermission> getAllGroups() {
 
     List<GroupPermission> list = new ArrayList<>();
@@ -88,7 +87,7 @@ public class PermissionManager {
   }
 
   private void addPermission(Player player, String permission, boolean allowed) {
-    player.addAttachment(this.plugin).setPermission(permission, allowed);
+    player.addAttachment(this.plugin).setPermission(permission.replaceAll("#", "."), allowed);
   }
 
   public void saveGroup(GroupPermission group) {
