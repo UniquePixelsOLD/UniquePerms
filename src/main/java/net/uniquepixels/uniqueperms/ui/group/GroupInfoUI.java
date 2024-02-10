@@ -15,10 +15,10 @@ import net.uniquepixels.core.paper.gui.item.UIItem;
 import net.uniquepixels.core.paper.gui.types.chest.ChestUI;
 import net.uniquepixels.core.paper.item.DefaultItemStackBuilder;
 import net.uniquepixels.core.paper.item.skull.SkullItemStackBuilder;
-import net.uniquepixels.uniqueperms.UniquePerms;
 import net.uniquepixels.uniqueperms.permission.GroupPermission;
-import net.uniquepixels.uniqueperms.permission.PermissionManager;
+import net.uniquepixels.uniqueperms.permission.PermissionStorage;
 import net.uniquepixels.uniqueperms.ui.UiHeads;
+import net.uniquepixels.uniqueperms.ui.generic.ExtendFromGroupUI;
 import net.uniquepixels.uniqueperms.ui.generic.PermissionsDashboardUI;
 import net.uniquepixels.uniqueperms.ui.generic.UIData;
 import net.uniquepixels.uniqueperms.ui.generic.UISection;
@@ -27,7 +27,6 @@ import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Locale;
@@ -35,15 +34,16 @@ import java.util.Locale;
 public class GroupInfoUI extends ChestUI {
 
   private final GroupPermission groupPermission;
-  private final PermissionManager permissionManager = JavaPlugin.getPlugin(UniquePerms.class).getPermissionManager();
+  private final PermissionStorage storage;
   private final UIHolder uiHolder;
   private int weight;
   private boolean deleteGroup = false;
 
-  public GroupInfoUI(GroupPermission groupPermission, UIHolder uiHolder) {
+  public GroupInfoUI(GroupPermission groupPermission, PermissionStorage storage, UIHolder uiHolder) {
     super(Component.translatable("ui.group.info.title").color(TextColor.fromHexString("#870ac2")), UIRow.CHEST_ROW_6);
     this.groupPermission = groupPermission;
     this.weight = groupPermission.weight();
+    this.storage = storage;
     this.uiHolder = uiHolder;
   }
 
@@ -80,7 +80,7 @@ public class GroupInfoUI extends ChestUI {
       .buildItem(), UISlot.SLOT_45), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
       this.onClose(player1);
-      this.uiHolder.open(new GroupDashboardUI(this.uiHolder), player1);
+      this.uiHolder.open(new GroupDashboardUI(this.uiHolder, this.storage), player1);
 
       return true;
     });
@@ -104,7 +104,7 @@ public class GroupInfoUI extends ChestUI {
         .buildItem(), UISlot.SLOT_20), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
       this.onClose(player1);
-      this.uiHolder.open(new PermissionsDashboardUI(this.permissionManager, this.uiHolder, UISection.GROUP, new UIData(this.groupPermission, null), 0), player1);
+      this.uiHolder.open(new PermissionsDashboardUI(this.storage, this.uiHolder, UISection.GROUP, new UIData(this.groupPermission, null), 0), player1);
 
       return true;
     });
@@ -127,7 +127,7 @@ public class GroupInfoUI extends ChestUI {
         .applyItemMeta()
         .buildItem(), UISlot.SLOT_38), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
-      player1.sendMessage("Open extend groups");
+      this.uiHolder.open(new ExtendFromGroupUI(this.storage, this.uiHolder, UISection.GROUP, new UIData(this.groupPermission, null), 0), player1);
 
       return true;
     });
@@ -267,8 +267,8 @@ public class GroupInfoUI extends ChestUI {
           .addEnchantment(Enchantment.MENDING, 1).applyItemMeta()
           .buildItem(), UISlot.SLOT_49), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
-        this.permissionManager.removeGroupByName(this.groupPermission.groupName());
-        this.uiHolder.open(new GroupDashboardUI(this.uiHolder), player1);
+        this.storage.removeGroup(this.groupPermission.groupName());
+        this.uiHolder.open(new GroupDashboardUI(this.uiHolder, this.storage), player1);
 
         return true;
       });
@@ -312,13 +312,11 @@ public class GroupInfoUI extends ChestUI {
 
   @Override
   public void onClose(Player player) {
-
-    this.permissionManager.saveGroup(new GroupPermission(groupPermission.groupName(),
+    this.storage.updateGroup(new GroupPermission(groupPermission.groupName(),
       groupPermission.permissions(),
       groupPermission.extendFromGroups(),
       this.weight,
       groupPermission.material()));
-
   }
 
   @Override

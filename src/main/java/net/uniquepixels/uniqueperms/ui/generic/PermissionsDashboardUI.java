@@ -16,11 +16,12 @@ import net.uniquepixels.core.paper.gui.item.UIAction;
 import net.uniquepixels.core.paper.gui.item.UIItem;
 import net.uniquepixels.core.paper.gui.types.chest.ChestUI;
 import net.uniquepixels.core.paper.item.DefaultItemStackBuilder;
-import net.uniquepixels.coreapi.MapPaginator;
+import net.uniquepixels.coreapi.ListPaginator;
 import net.uniquepixels.uniqueperms.UniquePerms;
-import net.uniquepixels.uniqueperms.permission.PermissionManager;
+import net.uniquepixels.uniqueperms.permission.PermissionStorage;
 import net.uniquepixels.uniqueperms.ui.UiHeads;
 import net.uniquepixels.uniqueperms.ui.group.GroupInfoUI;
+import net.uniquepixels.uniqueperms.ui.player.SpecificPlayerInfoUI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -32,22 +33,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.UUID;
 
 public class PermissionsDashboardUI extends ChestUI {
-  private final PermissionManager permissionManager;
+  private final PermissionStorage storage;
   private final UIHolder uiHolder;
   private final UISection section;
   private final UIData data;
-  private final HashMap<Integer, HashMap<String, Boolean>> permissions = new HashMap<>();
+  private final HashMap<Integer, List<String>> permissions = new HashMap<>();
   private int currentPage;
   private int currentSlot = 0;
   private boolean deletePermission = false;
 
 
-  public PermissionsDashboardUI(PermissionManager permissionManager, UIHolder uiHolder, UISection section, UIData data, int page) {
+  public PermissionsDashboardUI(PermissionStorage storage, UIHolder uiHolder, UISection section, UIData data, int page) {
     super(Component.translatable("ui.permission.title").color(TextColor.fromHexString("#870ac2")), UIRow.CHEST_ROW_6);
-    this.permissionManager = permissionManager;
+    this.storage = storage;
     this.uiHolder = uiHolder;
     this.section = section;
     this.data = data;
@@ -64,20 +65,20 @@ public class PermissionsDashboardUI extends ChestUI {
         if (this.data.group() == null)
           return;
 
-        this.permissions.putAll(new MapPaginator<>(this.data.group().permissions()).maxSizePerPage(45));
+        this.permissions.putAll(new ListPaginator<>(this.data.group().permissions()).maxSizePerPage(45));
       }
       case PLAYER -> {
 
         if (this.data.player() == null)
           return;
 
-        this.permissions.putAll(new MapPaginator<>(this.data.player().permissions()).maxSizePerPage(45));
+        this.permissions.putAll(new ListPaginator<>(this.data.player().permissions()).maxSizePerPage(45));
       }
     }
 
   }
 
-  private UIAction handlePermissionClick(String permission, boolean allowed) {
+  private UIAction handlePermissionClick(String permission) {
     return (player, uiItem, clickType, inventoryClickEvent) -> {
 
       if (this.deletePermission) {
@@ -109,7 +110,7 @@ public class PermissionsDashboardUI extends ChestUI {
 
       switch (this.section) {
         case PLAYER -> {
-          this.data.player().permissions().put(permission, !this.data.player().permissions().get(permission));
+          this.data.player().permissions().add(permission);
           try {
             this.refreshInventory(player);
           } catch (OutOfInventoryException e) {
@@ -118,7 +119,7 @@ public class PermissionsDashboardUI extends ChestUI {
 
         }
         case GROUP -> {
-          this.data.group().permissions().put(permission, !this.data.group().permissions().get(permission));
+          this.data.group().permissions().add(permission);
           try {
             this.refreshInventory(player);
           } catch (OutOfInventoryException e) {
@@ -131,7 +132,7 @@ public class PermissionsDashboardUI extends ChestUI {
     };
   }
 
-  private void addPermissionItem(String permission, boolean allowed, Player player) throws OutOfInventoryException {
+  private void addPermissionItem(String permission, Player player) throws OutOfInventoryException {
 
     Locale locale = player.locale();
     Component leftClick = GlobalTranslator.render(Component.translatable("ui.left.click"), locale)
@@ -147,30 +148,14 @@ public class PermissionsDashboardUI extends ChestUI {
             leftClick.append(minus.append(GlobalTranslator.render(Component.translatable("ui.permission.entry.lore.delete"), locale).color(NamedTextColor.RED)))
           )
           .displayName(Component.text(permission.replaceAll("#", ".")).color(NamedTextColor.GREEN))
-          .applyItemMeta().buildItem(), UISlot.fromSlotId(this.currentSlot).orElse(UISlot.SLOT_0)), this.handlePermissionClick(permission, allowed));
-    } else if (allowed) {
-      item(new UIItem(
-        new DefaultItemStackBuilder<>(Material.PAPER)
-          .addFlags(ItemFlag.values())
-          .removeLoreLines()
-          .addLoreLine(
-            leftClick.append(minus.append(GlobalTranslator.render(Component.translatable("ui.permission.entry.lore.normal")
-              .arguments(GlobalTranslator.render(Component.translatable("action.enabled").color(NamedTextColor.GREEN), locale)), locale).color(NamedTextColor.GRAY)))
-          )
-          .displayName(Component.text(permission.replaceAll("#", ".")).color(NamedTextColor.GREEN))
-          .applyItemMeta().buildItem(), UISlot.fromSlotId(this.currentSlot).orElse(UISlot.SLOT_0)), this.handlePermissionClick(permission, allowed));
+          .applyItemMeta().buildItem(), UISlot.fromSlotId(this.currentSlot).orElse(UISlot.SLOT_0)), this.handlePermissionClick(permission));
     } else {
       item(new UIItem(
         new DefaultItemStackBuilder<>(Material.PAPER)
           .addFlags(ItemFlag.values())
           .removeLoreLines()
-          .addLoreLine(
-            leftClick.append(minus.append(GlobalTranslator.render(Component.translatable("ui.permission.entry.lore.normal")
-              .arguments(GlobalTranslator.render(Component.translatable("action.disabled").color(NamedTextColor.RED), locale)), locale).color(NamedTextColor.GRAY)))
-          )
-          .addEnchantment(Enchantment.MENDING, 1)
-          .displayName(Component.text(permission.replaceAll("#", ".")).color(NamedTextColor.RED))
-          .applyItemMeta().buildItem(), UISlot.fromSlotId(this.currentSlot).orElse(UISlot.SLOT_0)), this.handlePermissionClick(permission, allowed));
+          .displayName(Component.text(permission.replaceAll("#", ".")).color(NamedTextColor.GREEN))
+          .applyItemMeta().buildItem(), UISlot.fromSlotId(this.currentSlot).orElse(UISlot.SLOT_0)), this.handlePermissionClick(permission));
 
     }
 
@@ -179,7 +164,7 @@ public class PermissionsDashboardUI extends ChestUI {
 
   private synchronized void openInventoryAgain(Player player) {
     Bukkit.getScheduler().getMainThreadExecutor(JavaPlugin.getPlugin(UniquePerms.class)).execute(() -> {
-      this.uiHolder.open(new PermissionsDashboardUI(this.permissionManager, this.uiHolder, this.section, this.data, this.currentPage), player);
+      this.uiHolder.open(new PermissionsDashboardUI(this.storage, this.uiHolder, this.section, this.data, this.currentPage), player);
     });
   }
 
@@ -198,10 +183,8 @@ public class PermissionsDashboardUI extends ChestUI {
     this.currentSlot = 0;
 
     if (!this.permissions.isEmpty())
-      for (Map.Entry<String, Boolean> entry : this.permissions.get(this.currentPage).entrySet()) {
-        String key = entry.getKey();
-        Boolean value = entry.getValue();
-        addPermissionItem(key, value, player);
+      for (String permission : this.permissions.get(this.currentPage)) {
+        addPermissionItem(permission, player);
       }
 
     item(new UIItem(
@@ -220,11 +203,11 @@ public class PermissionsDashboardUI extends ChestUI {
 
       JavaPlugin.getPlugin(UniquePerms.class).getChatInputManager().addChatInput(new ChatInput(player1, component -> {
 
-        String userInput = this.convertPermission(PlainTextComponentSerializer.plainText().serialize(component));
+        String userInput = PlainTextComponentSerializer.plainText().serialize(component);
 
         switch (this.section) {
-          case PLAYER -> this.data.player().permissions().put(userInput, true);
-          case GROUP -> this.data.group().permissions().put(userInput, true);
+          case PLAYER -> this.data.player().permissions().add(userInput);
+          case GROUP -> this.data.group().permissions().add(userInput);
         }
 
         this.openInventoryAgain(player1);
@@ -273,9 +256,11 @@ public class PermissionsDashboardUI extends ChestUI {
         .buildItem(), UISlot.SLOT_47
     ), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
+      this.onClose(player1);
+
       switch (section) {
-        case GROUP -> this.uiHolder.open(new GroupInfoUI(this.data.group(), this.uiHolder), player1);
-        case PLAYER -> player1.sendMessage("Not impl yet!");
+        case GROUP -> this.uiHolder.open(new GroupInfoUI(this.data.group(), this.storage, this.uiHolder), player1);
+        case PLAYER -> this.uiHolder.open(new SpecificPlayerInfoUI(Bukkit.getOfflinePlayer(UUID.fromString(this.data.player().uuid())), this.storage, this.uiHolder), player1);
       }
 
       return true;
@@ -323,16 +308,12 @@ public class PermissionsDashboardUI extends ChestUI {
 
   }
 
-  private String convertPermission(String permission) {
-    return permission.replaceAll("\\.", "#");
-  }
-
   @Override
   public void onClose(Player player) {
 
     switch (this.section) {
-      case PLAYER -> this.permissionManager.savePlayer(this.data.player());
-      case GROUP -> this.permissionManager.saveGroup(this.data.group());
+      case PLAYER -> this.storage.updatePlayer(this.data.player());
+      case GROUP -> this.storage.updateGroup(this.data.group());
     }
 
   }

@@ -5,8 +5,7 @@ api-version: 1.20
 author: [ DasShorty ]
 libraries:
   - dev.s7a:base64-itemstack:1.0.0
-depend: [PaperCore]
+depend: [ PaperCore ]
 commands:
   perms:
-    permission: test
     aliases: [ permissions,permission ]

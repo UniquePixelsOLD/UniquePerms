@@ -8,6 +8,8 @@ import net.uniquepixels.core.paper.chat.chatinput.ChatInputManager;
 import net.uniquepixels.core.paper.gui.backend.UIHolder;
 import net.uniquepixels.coreapi.database.MongoDatabase;
 import net.uniquepixels.uniqueperms.permission.PermissionManager;
+import net.uniquepixels.uniqueperms.permission.PermissionStorage;
+import net.uniquepixels.uniqueperms.permission.PlayerListener;
 import net.uniquepixels.uniqueperms.ui.PermissionCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -19,6 +21,7 @@ import java.util.ResourceBundle;
 public class UniquePerms extends JavaPlugin {
 
   private PermissionManager permissionManager;
+  private PermissionStorage permissionStorage;
   private ChatInputManager chatInputManager;
 
   public ChatInputManager getChatInputManager() {
@@ -51,7 +54,10 @@ public class UniquePerms extends JavaPlugin {
     GlobalTranslator.translator().addSource(registry);
 
     this.permissionManager = new PermissionManager(mongoDatabase);
+    this.permissionStorage = new PermissionStorage();
 
-    getCommand("perms").setExecutor(new PermissionCommand(uiHolder));
+    Bukkit.getPluginManager().registerEvents(new PlayerListener(this.permissionStorage), this);
+
+    getCommand("perms").setExecutor(new PermissionCommand(uiHolder, this.permissionStorage));
   }
 }

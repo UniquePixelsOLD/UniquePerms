@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public record PlayerPermission(UUID uuid, List<String> groups, Map<String, Boolean> permissions) {
+public record PlayerPermission(String uuid, List<String> groups, List<String> permissions) {
 
 
   public static PlayerPermission fromDocument(Document document) {

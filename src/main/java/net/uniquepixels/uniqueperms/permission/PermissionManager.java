@@ -4,22 +4,18 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import net.uniquepixels.coreapi.database.MongoDatabase;
-import net.uniquepixels.uniqueperms.UniquePerms;
 import org.bson.Document;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
 
 public class PermissionManager {
 
   private final MongoDatabase mongoDatabase;
-  private final JavaPlugin plugin;
 
   public PermissionManager(MongoDatabase mongoDatabase) {
     this.mongoDatabase = mongoDatabase;
-    this.plugin = JavaPlugin.getPlugin(UniquePerms.class);
   }
 
   private MongoCollection<Document> getGroupCollection() {
@@ -27,8 +23,9 @@ public class PermissionManager {
   }
 
   private MongoCollection<Document> getPlayerCollection() {
-    return this.mongoDatabase.collection("perms-groups", Document.class);
+    return this.mongoDatabase.collection("perms-player", Document.class);
   }
+
   public List<GroupPermission> getAllGroups() {
 
     List<GroupPermission> list = new ArrayList<>();
@@ -40,54 +37,15 @@ public class PermissionManager {
     return list;
   }
 
-  /**
-   * Applies the permissions set for the player into the player
-   */
-  private void applyPermissionFromPermissionsToPlayer(Player player, Map<String, Boolean> permissions) {
-    permissions.forEach((s, aBoolean) -> this.addPermission(player, s, aBoolean));
-  }
+  public List<PlayerPermission> getAllPlayers() {
 
-  /**
-   * Applies the permissions from the extended groups on the player and adds the group specific permissions at the end
-   */
-  private void applyGroupPermissions(Player player, GroupPermission groupPermission) {
+    List<PlayerPermission> list = new ArrayList<>();
 
-    groupPermission.extendFromGroups().stream().map(s -> {
-        Optional<Document> join = this.getGroupByName(s).join();
-        return join.map(GroupPermission::fromDocument).orElse(null);
-      }).filter(Objects::nonNull).sorted((perm1, perm2) -> Math.min(perm1.weight(), perm2.weight()))
-      .forEachOrdered(permission -> {
-        System.out.println(permission.groupName());
-        permission.permissions().forEach((s, aBoolean) -> this.addPermission(player, s, aBoolean));
-      });
+    for (Document document : this.getPlayerCollection().find()) {
+      list.add(PlayerPermission.fromDocument(document));
+    }
 
-    groupPermission.permissions().forEach((s, aBoolean) -> this.addPermission(player, s, aBoolean));
-  }
-
-  public void updatePlayerPermissions(Player player) {
-
-    CompletableFuture<Optional<Document>> playerById = this.getPlayerById(player.getUniqueId());
-
-    Optional<Document> optional = playerById.join();
-
-    if (optional.isEmpty())
-      return;
-
-    PlayerPermission playerPermission = PlayerPermission.fromDocument(optional.get());
-    this.applyPermissionFromPermissionsToPlayer(player, playerPermission.permissions());
-
-    playerPermission.groups().stream().map(s -> {
-        Optional<Document> join = this.getGroupByName(s).join();
-        return join.map(GroupPermission::fromDocument).orElse(null);
-      }).filter(Objects::nonNull).sorted((perm1, perm2) -> Math.min(perm1.weight(), perm2.weight()))
-      .forEachOrdered(permission -> {
-        this.applyGroupPermissions(player, permission);
-      });
-
-  }
-
-  private void addPermission(Player player, String permission, boolean allowed) {
-    player.addAttachment(this.plugin).setPermission(permission.replaceAll("#", "."), allowed);
+    return list;
   }
 
   public void saveGroup(GroupPermission group) {
@@ -110,16 +68,10 @@ public class PermissionManager {
     return this.getGroupCollection().countDocuments(Filters.eq("groupName", groupName)) > 0L;
   }
 
-  public CompletableFuture<Optional<Document>> getGroupByName(String groupName) {
-    CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
-    future.completeAsync(() -> Optional.ofNullable(this.getGroupCollection().find(Filters.eq("groupName", groupName)).first()));
-    return future;
-  }
-
-  public CompletableFuture<Boolean> removeGroupByName(String groupName) {
-    CompletableFuture<Boolean> future = new CompletableFuture<>();
-    future.completeAsync(() -> this.getGroupCollection().deleteOne(Filters.eq("groupName", groupName)).getDeletedCount() > 0L);
-    return future;
+  public void removeGroupByName(String groupName) {
+    Executors.newVirtualThreadPerTaskExecutor().submit(() -> {
+      this.getGroupCollection().deleteOne(Filters.eq("groupName", groupName));
+    });
   }
 
   public void savePlayer(PlayerPermission player) {
@@ -137,19 +89,7 @@ public class PermissionManager {
     this.getPlayerCollection().insertOne(player.toDocument());
   }
 
-  public boolean existPlayer(UUID uid) {
-    return this.getGroupCollection().countDocuments(Filters.eq("uuid", uid)) > 0L;
-  }
-
-  public CompletableFuture<Optional<Document>> getPlayerById(UUID uuid) {
-    CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
-    future.completeAsync(() -> Optional.ofNullable(this.getPlayerCollection().find(Filters.eq("uuid", uuid)).first()));
-    return future;
-  }
-
-  public CompletableFuture<Boolean> removePlayerByName(UUID uuid) {
-    CompletableFuture<Boolean> future = new CompletableFuture<>();
-    future.completeAsync(() -> this.getPlayerCollection().deleteOne(Filters.eq("uuid", uuid)).getDeletedCount() > 0L);
-    return future;
+  public boolean existPlayer(String uuid) {
+    return this.getPlayerCollection().countDocuments(Filters.eq("uuid", uuid)) > 0L;
   }
 }

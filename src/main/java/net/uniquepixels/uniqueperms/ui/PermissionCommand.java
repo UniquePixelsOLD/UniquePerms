@@ -6,15 +6,13 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.uniquepixels.core.paper.gui.backend.UIHolder;
-import net.uniquepixels.uniqueperms.UniquePerms;
-import net.uniquepixels.uniqueperms.permission.PermissionManager;
+import net.uniquepixels.uniqueperms.permission.PermissionStorage;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 public class PermissionCommand implements CommandExecutor {
@@ -26,11 +24,11 @@ public class PermissionCommand implements CommandExecutor {
     .append(Component.space());
 
   private final UIHolder uiHolder;
-  private final PermissionManager permissionManager;
+  private final PermissionStorage storage;
 
-  public PermissionCommand(UIHolder uiHolder) {
+  public PermissionCommand(UIHolder uiHolder, PermissionStorage storage) {
     this.uiHolder = uiHolder;
-    this.permissionManager = JavaPlugin.getPlugin(UniquePerms.class).getPermissionManager();
+    this.storage = storage;
   }
 
   @Override
@@ -52,15 +50,7 @@ public class PermissionCommand implements CommandExecutor {
       return true;
     }
 
-    //GroupPermission group1 = new GroupPermission("Test1", new HashMap<>(), List.of(), 100, Material.DIAMOND);
-    //GroupPermission group2 = new GroupPermission("Test2", new HashMap<>(), List.of(), 100, Material.DIRT);
-    //GroupPermission group3 = new GroupPermission("Test3", new HashMap<>(), List.of(), 100, Material.GRASS_BLOCK);
-//
-    //this.permissionManager.saveGroup(group1);
-    //this.permissionManager.saveGroup(group2);
-    //this.permissionManager.saveGroup(group3);
-
-    this.uiHolder.open(new HomeUI(this.uiHolder), player);
+    this.uiHolder.open(new HomeUI(this.uiHolder, this.storage), player);
 
     return true;
   }

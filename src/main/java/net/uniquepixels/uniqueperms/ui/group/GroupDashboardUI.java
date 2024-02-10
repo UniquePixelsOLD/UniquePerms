@@ -19,9 +19,9 @@ import net.uniquepixels.core.paper.item.skull.SkullItemStackBuilder;
 import net.uniquepixels.uniqueperms.UniquePerms;
 import net.uniquepixels.uniqueperms.permission.GroupPermission;
 import net.uniquepixels.uniqueperms.permission.PermissionManager;
+import net.uniquepixels.uniqueperms.permission.PermissionStorage;
 import net.uniquepixels.uniqueperms.ui.HomeUI;
 import net.uniquepixels.uniqueperms.ui.UiHeads;
-import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -35,17 +35,19 @@ import java.util.*;
 
 public class GroupDashboardUI extends ChestUI {
   private final UIHolder uiHolder;
+  private final PermissionStorage storage;
   private final UniquePerms plugin = JavaPlugin.getPlugin(UniquePerms.class);
   private int slotId = 0;
 
-  public GroupDashboardUI(UIHolder uiHolder) {
+  public GroupDashboardUI(UIHolder uiHolder, PermissionStorage storage) {
     super(Component.translatable("ui.group.dashboard.title").color(TextColor.fromHexString("#870ac2")), UIRow.CHEST_ROW_6);
     this.uiHolder = uiHolder;
+    this.storage = storage;
   }
 
   private synchronized void openInventoryAgain(Player player) {
     Bukkit.getScheduler().getMainThreadExecutor(JavaPlugin.getPlugin(UniquePerms.class)).execute(() -> {
-      this.uiHolder.open(new GroupDashboardUI(this.uiHolder), player);
+      this.uiHolder.open(new GroupDashboardUI(this.uiHolder, this.storage), player);
     });
   }
 
@@ -104,7 +106,7 @@ public class GroupDashboardUI extends ChestUI {
           return;
         }
 
-        this.plugin.getPermissionManager().saveGroup(new GroupPermission(userInput, new HashMap<>(), new ArrayList<>(), 50, material));
+        this.plugin.getPermissionManager().saveGroup(new GroupPermission(userInput, new ArrayList<>(), new ArrayList<>(), 50, material));
         player1.sendMessage(prefix.append(
           Component.translatable("add.group.created").color(NamedTextColor.GRAY)
             .arguments(Component.text(userInput).color(NamedTextColor.GREEN))
@@ -121,7 +123,7 @@ public class GroupDashboardUI extends ChestUI {
       .applyItemMeta()
       .buildItem(), UISlot.SLOT_46), (player1, uiItem, clickType, inventoryClickEvent) -> {
 
-      this.uiHolder.open(new HomeUI(this.uiHolder), player1);
+      this.uiHolder.open(new HomeUI(this.uiHolder, this.storage), player1);
 
       return true;
     });
@@ -134,10 +136,7 @@ public class GroupDashboardUI extends ChestUI {
         .buildItem(), UISlot.SLOT_1)
     )));
 
-
-    PermissionManager permissionManager = this.plugin.getPermissionManager();
-
-    List<GroupPermission> allGroups = permissionManager.getAllGroups();
+    List<GroupPermission> allGroups =  this.storage.getGroupPermissions();
 
     allGroups.sort(Comparator.comparingInt(GroupPermission::weight).reversed());
 
@@ -168,12 +167,12 @@ public class GroupDashboardUI extends ChestUI {
               return true;
             }
 
-            Optional<Document> optional = permissionManager.getGroupByName(groupName).join();
+            Optional<GroupPermission> optional = this.storage.getGroupPermission(groupName);
 
             if (optional.isEmpty())
               return true;
 
-            this.uiHolder.open(new GroupInfoUI(GroupPermission.fromDocument(optional.get()), this.uiHolder), player1);
+            this.uiHolder.open(new GroupInfoUI(optional.get(), this.storage, this.uiHolder), player1);
 
             return true;
           });
